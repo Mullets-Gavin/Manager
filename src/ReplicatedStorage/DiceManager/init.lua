@@ -64,12 +64,13 @@ end
 	
 	.wrap(function)
 ]]--
-function Manager.wrap(code)
+function Manager.wrap(code,...)
 	assert(typeof(code) == 'function',"[DICE MANAGER]: 'wrap' only accepts functions, got '".. typeof(code) .."'")
+	local contents = table.unpack({...})
 	local event
 	event = Services['RunService'].Heartbeat:Connect(function()
 		event:Disconnect()
-		code()
+		code(contents)
 	end)
 end
 
@@ -115,7 +116,7 @@ end
 	Returns:
 	
 	control = dictionary
-	control:Fire()
+	control:Fire(...)
 	control:Disconnect()
 ]]--
 function Manager:Connect(code)
@@ -137,9 +138,9 @@ function Manager:Connect(code)
 		code = nil
 	end
 	
-	function control:Fire()
+	function control:Fire(...)
 		if typeof(code) == 'function' then
-			Manager.wrap(code)
+			Manager.wrap(code,...)
 		else
 			warn("[DICE MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
 		end
@@ -158,7 +159,7 @@ end
 	Returns:
 	
 	control = dictionary
-	control:Fire()
+	control:Fire(...)
 	control:Disconnect()
 ]]--
 function Manager:ConnectKey(key,code)
@@ -184,9 +185,9 @@ function Manager:ConnectKey(key,code)
 		code = nil
 	end
 	
-	function control:Fire()
+	function control:Fire(...)
 		if typeof(code) == 'function' then
-			Manager.wrap(code)
+			Manager.wrap(code,...)
 		else
 			warn("[DICE MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
 		end
@@ -230,7 +231,7 @@ function Manager:Task(targetFPS)
 	assert(typeof(targetFPS) == 'number',"[DICE MANAGER]: Task scheduler only accepts numbers for frames per second, got '".. typeof(targetFPS) .."'")
 	
 	local control = {}
-	control.Queue = {}
+	control.CodeQueue = {}
 	control.UpdateTable = {}
 	control.Sleeping = true
 	control.Paused = false
@@ -253,9 +254,9 @@ function Manager:Task(targetFPS)
 			if control.Sleeping then break end
 			local fps = (((tick() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (tick() - start)))
 			if (fps >= targetFPS and (tick() - control.UpdateTable[1]) < (1 / targetFPS)) then
-				if (#control.Queue > 0) then
-					control.Queue[1]()
-					table.remove(control.Queue, 1)
+				if (#control.CodeQueue > 0) then
+					control.CodeQueue[1]()
+					table.remove(control.CodeQueue, 1)
 				else
 					control.Sleeping = true
 					break
@@ -297,7 +298,7 @@ function Manager:Task(targetFPS)
 	end
 	
 	function control:Queue(code)
-		control.Queue[#control.Queue + 1] = code
+		control.CodeQueue[#control.CodeQueue + 1] = code
 		if (control.Sleeping and not control.Paused) then
 			control.Sleeping = false
 			Loop()
