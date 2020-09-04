@@ -114,10 +114,10 @@ With the supplied key, disconnect all connections linked to the key.
 
 *Example:*
 ```lua
-local event = Manager:ConnectKey('Keepsake',game:GetService('RunService').Heartbeat:Connect(function()
+Manager:ConnectKey('Keepsake',game:GetService('RunService').Heartbeat:Connect(function()
 	print('running on key "Keepsake"!')
 end))
-local event2 = Manager:ConnectKey('Keepsake',game:GetService('RunService').Heartbeat:Connect(function()
+Manager:ConnectKey('Keepsake',game:GetService('RunService').Heartbeat:Connect(function()
 	print('running on key "Keepsake" as well omg!')
 end))
 game:GetService('RunService').Heartbeat:Wait()
@@ -157,17 +157,3 @@ scheduler:Resume()
 print('Finished')
 scheduler:Disconnect()
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
