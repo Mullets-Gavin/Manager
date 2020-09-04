@@ -5,7 +5,7 @@
 
 --[[
 [DOCUMENTATION]:
-	[todo: link github]
+	https://github.com/Mullets-Gavin/DiceManager
 	Listed below is a quick glance on the API, visit the link above for proper documentation.
 	
 	Manager.set(dictionary)
