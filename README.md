@@ -8,6 +8,17 @@ Dice Manager is an elegant solution to solving the ever-challenging memory-posed
 
 ## Documentation
 
+### DiceManager.set
+```lua
+Manager.set(properties)
+```
+Set the properties of the manager:
+
+```
+properties = dictionary
+properties['Debug'] = bool -- true (on) or false (off)?
+```
+
 ### DiceManager.wrap
 ```lua
 .wrap(function)
