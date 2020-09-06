@@ -100,8 +100,8 @@ end
 ]]--
 function Manager.delay(clock,code)
 	assert(typeof(clock) == 'number' and typeof(code) == 'function',"[DICE MANAGER]: 'delay' missing parameters, got '".. typeof(clock) .."' and '".. typeof(code) .."'")
-	local current = tick()
-	while clock < tick() - current do
+	local current = os.clock()
+	while clock < os.clock() - current do
 		Services['RunService'].Heartbeat:Wait()
 	end
 	Manager.wrap(code)
@@ -237,11 +237,11 @@ function Manager:Task(targetFPS)
 	control.Paused = false
 	control.UpdateTableEvent = nil
 	
-	local start = tick()
+	local start = os.clock()
 	Services['RunService'].Heartbeat:Wait()
 	
 	local function Update()
-		Manager.LastIteration = tick()
+		Manager.LastIteration = os.clock()
 		for index = #control.UpdateTable,1,-1 do
 			control.UpdateTable[index + 1] = ((control.UpdateTable[index] >= (Manager.LastIteration - 1)) and control.UpdateTable[index] or nil)
 		end
@@ -252,8 +252,8 @@ function Manager:Task(targetFPS)
 		control.UpdateTableEvent = Services['RunService'].Heartbeat:Connect(Update)
 		while (true) do
 			if control.Sleeping then break end
-			local fps = (((tick() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (tick() - start)))
-			if (fps >= targetFPS and (tick() - control.UpdateTable[1]) < (1 / targetFPS)) then
+			local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
+			if (fps >= targetFPS and (os.clock() - control.UpdateTable[1]) < (1 / targetFPS)) then
 				if (#control.CodeQueue > 0) then
 					control.CodeQueue[1]()
 					table.remove(control.CodeQueue, 1)
