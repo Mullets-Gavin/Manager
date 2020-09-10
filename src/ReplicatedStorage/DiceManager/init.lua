@@ -100,11 +100,26 @@ end
 ]]--
 function Manager.delay(clock,code)
 	assert(typeof(clock) == 'number' and typeof(code) == 'function',"[DICE MANAGER]: 'delay' missing parameters, got '".. typeof(clock) .."' and '".. typeof(code) .."'")
+	Manager.wrap(function()
+		local current = os.clock()
+		while clock < os.clock() - current do
+			Services['RunService'].Heartbeat:Wait()
+		end
+		Manager.wrap(code)
+	end)
+end
+
+--[[
+	Variations of call:
+	
+	.wait(time)
+--]]
+function Manager.wait(clock)
+	assert(typeof(clock) == 'number',"[DICE MANAGER]: 'wait' expected number, got '".. typeof(clock) .."'")
 	local current = os.clock()
-	while clock < os.clock() - current do
+	while clock > os.clock() - current do
 		Services['RunService'].Heartbeat:Wait()
 	end
-	Manager.wrap(code)
 end
 
 --[[
@@ -279,6 +294,12 @@ function Manager:Task(targetFPS)
 			control.Paused = false
 			control.Sleeping = false
 			Loop()
+		end
+	end
+	
+	function control:Wait()
+		while not control.Sleeping do
+			Services['RunService'].Heartbeat:Wait()
 		end
 	end
 	
