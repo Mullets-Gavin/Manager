@@ -67,6 +67,22 @@ end
 Manager.delay(5,run)
 ```
 
+### DiceManager.wait
+```lua
+.wait(time)
+```
+An accurate wait function that takes a given time after the time is met more accurately than `wait()`
+
+*Example:*
+```lua
+local function run()
+	print('running after 5 seconds passed')
+end
+
+Manager.wait(5)
+run()
+```
+
 ### DiceManager:Connect
 ```lua
 :Connect(function)
@@ -147,6 +163,7 @@ control = dictionary
 control:Queue(function)
 control:Pause()
 control:Resume()
+control:Wait()
 control:Disconnect()
 ```
 Supply a function to `Queue()` to run a function in the order the function was passed in.
