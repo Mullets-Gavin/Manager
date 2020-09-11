@@ -68,9 +68,9 @@ function Manager.wrap(code,...)
 	assert(typeof(code) == 'function',"[DICE MANAGER]: 'wrap' only accepts functions, got '".. typeof(code) .."'")
 	local contents = table.unpack({...})
 	local event
-	event = Services['RunService'].Heartbeat:Connect(function()
+	event = Services['RunService'].Stepped:Connect(function()
 		event:Disconnect()
-		code(contents)
+		return code(contents)
 	end)
 end
 
@@ -82,10 +82,10 @@ end
 function Manager.spawn(code)
 	assert(typeof(code) == 'function',"[DICE MANAGER]: 'spawn' only accepts functions, got '".. typeof(code) .."'")
 	local event
-	event = Services['RunService'].Heartbeat:Connect(function()
+	event = Services['RunService'].Stepped:Connect(function()
 		event:Disconnect()
 		local success,err = pcall(function()
-			code()
+			return code()
 		end)
 		if not success and Settings.Debug then
 			warn(err)
@@ -103,9 +103,9 @@ function Manager.delay(clock,code)
 	Manager.wrap(function()
 		local current = os.clock()
 		while clock < os.clock() - current do
-			Services['RunService'].Heartbeat:Wait()
+			Services['RunService'].Stepped:Wait()
 		end
-		Manager.wrap(code)
+		return Manager.wrap(code)
 	end)
 end
 
@@ -118,8 +118,9 @@ function Manager.wait(clock)
 	assert(typeof(clock) == 'number',"[DICE MANAGER]: 'wait' expected number, got '".. typeof(clock) .."'")
 	local current = os.clock()
 	while clock > os.clock() - current do
-		Services['RunService'].Heartbeat:Wait()
+		Services['RunService'].Stepped:Wait()
 	end
+	return true
 end
 
 --[[
@@ -151,11 +152,19 @@ function Manager:Connect(code)
 			end
 		end
 		code = nil
+		setmetatable(control, {
+			__index = function()
+				error('[DICE MANAGER]: Attempt to use destroyed connection')
+			end;
+			__newindex = function()
+				error('[DICE MANAGER]: Attempt to use destroyed connection')
+			end;
+		})
 	end
 	
 	function control:Fire(...)
 		if typeof(code) == 'function' then
-			Manager.wrap(code,...)
+			return Manager.wrap(code,...)
 		else
 			warn("[DICE MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
 		end
@@ -198,11 +207,19 @@ function Manager:ConnectKey(key,code)
 			end
 		end
 		code = nil
+		setmetatable(control, {
+			__index = function()
+				error('[DICE MANAGER]: Attempt to use destroyed connection')
+			end;
+			__newindex = function()
+				error('[DICE MANAGER]: Attempt to use destroyed connection')
+			end;
+		})
 	end
 	
 	function control:Fire(...)
 		if typeof(code) == 'function' then
-			Manager.wrap(code,...)
+			return Manager.wrap(code,...)
 		else
 			warn("[DICE MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
 		end
@@ -210,6 +227,20 @@ function Manager:ConnectKey(key,code)
 	
 	Manager.Connections[key][code] = control
 	return control
+end
+
+--[[
+	Variations of call:
+	
+	:FireKey(key)
+--]]
+function Manager:FireKey(key,...)
+	assert(key ~= nil,"[DICE MANAGER]: 'FireKey' missing parameters, got key '".. typeof(key) .."'")
+	if Manager.Connections[key] then
+		for code,control in pairs(Manager.Connections[key]) do
+			control:Fire(...)
+		end
+	end
 end
 
 --[[
@@ -253,7 +284,7 @@ function Manager:Task(targetFPS)
 	control.UpdateTableEvent = nil
 	
 	local start = os.clock()
-	Services['RunService'].Heartbeat:Wait()
+	Services['RunService'].Stepped:Wait()
 	
 	local function Update()
 		Manager.LastIteration = os.clock()
@@ -264,11 +295,10 @@ function Manager:Task(targetFPS)
 	end
 	
 	local function Loop()
-		control.UpdateTableEvent = Services['RunService'].Heartbeat:Connect(Update)
+		control.UpdateTableEvent = Services['RunService'].Stepped:Connect(Update)
 		while (true) do
 			if control.Sleeping then break end
-			local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
-			if (fps >= targetFPS and (os.clock() - control.UpdateTable[1]) < (1 / targetFPS)) then
+			if targetFPS < 0 then
 				if (#control.CodeQueue > 0) then
 					control.CodeQueue[1]()
 					table.remove(control.CodeQueue, 1)
@@ -277,7 +307,18 @@ function Manager:Task(targetFPS)
 					break
 				end
 			else
-				Services['RunService'].Heartbeat:Wait()
+				local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
+				if (fps >= targetFPS and (os.clock() - control.UpdateTable[1]) < (1 / targetFPS)) then
+					if (#control.CodeQueue > 0) then
+						control.CodeQueue[1]()
+						table.remove(control.CodeQueue, 1)
+					else
+						control.Sleeping = true
+						break
+					end
+				else
+					Services['RunService'].Stepped:Wait()
+				end
 			end
 		end
 		control.UpdateTableEvent:Disconnect()
@@ -287,6 +328,8 @@ function Manager:Task(targetFPS)
 	function control:Pause()
 		control.Paused = true
 		control.Sleeping = true
+		local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
+		return fps
 	end
 	
 	function control:Resume()
@@ -295,12 +338,16 @@ function Manager:Task(targetFPS)
 			control.Sleeping = false
 			Loop()
 		end
+		local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
+		return fps
 	end
 	
 	function control:Wait()
 		while not control.Sleeping do
-			Services['RunService'].Heartbeat:Wait()
+			Services['RunService'].Stepped:Wait()
 		end
+		local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
+		return fps
 	end
 	
 	function control:Disconnect()
