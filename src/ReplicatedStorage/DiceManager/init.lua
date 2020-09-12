@@ -115,12 +115,13 @@ end
 	.wait(time)
 --]]
 function Manager.wait(clock)
-	assert(typeof(clock) == 'number',"[DICE MANAGER]: 'wait' expected number, got '".. typeof(clock) .."'")
-	local current = os.clock()
-	while clock > os.clock() - current do
-		Services['RunService'].Stepped:Wait()
+	if clock then
+		local current = os.clock()
+		while clock > os.clock() - current do
+			Services['RunService'].Stepped:Wait()
+		end
 	end
-	return true
+	return Services['RunService'].Stepped:Wait()
 end
 
 --[[
@@ -279,6 +280,7 @@ function Manager:Task(targetFPS)
 	local control = {}
 	control.CodeQueue = {}
 	control.UpdateTable = {}
+	control.Enable = true
 	control.Sleeping = true
 	control.Paused = false
 	control.UpdateTableEvent = nil
@@ -298,10 +300,14 @@ function Manager:Task(targetFPS)
 		control.UpdateTableEvent = Services['RunService'].Stepped:Connect(Update)
 		while (true) do
 			if control.Sleeping then break end
+			if not control:Enabled() then break end
 			if targetFPS < 0 then
 				if (#control.CodeQueue > 0) then
 					control.CodeQueue[1]()
 					table.remove(control.CodeQueue, 1)
+					if not control:Enabled() then
+						break
+					end
 				else
 					control.Sleeping = true
 					break
@@ -312,17 +318,24 @@ function Manager:Task(targetFPS)
 					if (#control.CodeQueue > 0) then
 						control.CodeQueue[1]()
 						table.remove(control.CodeQueue, 1)
+						if not control:Enabled() then
+							break
+						end
 					else
 						control.Sleeping = true
 						break
 					end
-				else
+				elseif control:Enabled() then
 					Services['RunService'].Stepped:Wait()
 				end
 			end
 		end
 		control.UpdateTableEvent:Disconnect()
 		control.UpdateTableEvent = nil
+	end
+	
+	function control:Enabled()
+		return control.Enable
 	end
 	
 	function control:Pause()
@@ -351,7 +364,12 @@ function Manager:Task(targetFPS)
 	end
 	
 	function control:Disconnect()
+		control.Enable = false
 		control:Pause()
+		control.CodeQueue = nil
+		control.UpdateTable = nil
+		control.UpdateTableEvent:Disconnect()
+		control:Wait()
 		for index in pairs(control) do
 			control[index] = nil
 		end
