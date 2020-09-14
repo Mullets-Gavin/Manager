@@ -42,6 +42,7 @@ Manager.LastIteration = nil
 
 local Settings = {}
 Settings.Debug = false
+Settings.RunService = 'Stepped'
 
 --// services
 local Services = setmetatable({}, {__index = function(cache, serviceName)
@@ -57,10 +58,12 @@ end})
 	
 	properties = {
 		['Debug'] = bool
+		['RunService'] = 'Stepped' or 'Heartbeat'
 	}
 --]]
 function Manager.set(properties)
 	Settings.Debug = properties['Debug'] or false
+	Settings.RunService = properties['RunService'] or 'Stepped'
 end
 
 --[[
@@ -72,10 +75,10 @@ function Manager.wait(clock)
 	if clock then
 		local current = os.clock()
 		while clock > os.clock() - current do
-			Services['RunService'].Stepped:Wait()
+			Services['RunService'][Settings.RunService]:Wait()
 		end
 	end
-	return Services['RunService'].Stepped:Wait()
+	return Services['RunService'][Settings.RunService]:Wait()
 end
 
 --[[
@@ -87,7 +90,7 @@ function Manager.wrap(code,...)
 	assert(typeof(code) == 'function',"[DICE MANAGER]: 'wrap' only accepts functions, got '".. typeof(code) .."'")
 	local contents = table.unpack({...})
 	local event
-	event = Services['RunService'].Stepped:Connect(function()
+	event = Services['RunService'][Settings.RunService]:Connect(function()
 		event:Disconnect()
 		return code(contents)
 	end)
@@ -101,7 +104,7 @@ end
 function Manager.spawn(code)
 	assert(typeof(code) == 'function',"[DICE MANAGER]: 'spawn' only accepts functions, got '".. typeof(code) .."'")
 	local event
-	event = Services['RunService'].Stepped:Connect(function()
+	event = Services['RunService'][Settings.RunService]:Connect(function()
 		event:Disconnect()
 		local success,err = pcall(function()
 			return code()
@@ -254,6 +257,7 @@ end
 	Variations of call:
 	
 	:FireKey(key)
+	:FireKey(key,parameters)
 --]]
 function Manager:FireKey(key,...)
 	assert(key ~= nil,"[DICE MANAGER]: 'FireKey' missing parameters, got key '".. typeof(key) .."'")
@@ -317,7 +321,7 @@ function Manager:Task(targetFPS)
 	end
 	
 	local function Loop()
-		control.UpdateTableEvent = Services['RunService'].Stepped:Connect(Update)
+		control.UpdateTableEvent = Services['RunService'][Settings.RunService]:Connect(Update)
 		while (true) do
 			if control.Sleeping then break end
 			if not control:Enabled() then break end
