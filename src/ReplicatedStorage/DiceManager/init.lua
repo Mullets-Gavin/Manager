@@ -9,10 +9,11 @@
 	Listed below is a quick glance on the API, visit the link above for proper documentation.
 	
 	Manager.set(dictionary)
-	
+	Manager.wait(time)
 	Manager.wrap(function)
 	Manager.spawn(function)
 	Manager.delay(time,function)
+	Manager.garbage(time,instance)
 	
 	event = Manager:Connect(function)
 	event:Disconnect()
@@ -22,12 +23,15 @@
 	event:Disconnect()
 	event:Fire()
 	
+	Manager:FireKey(key,parameters)
 	Manager:DisconnectKey(key)
 	
 	event = Manager:Task([fps])
 	event:Queue(function)
 	event:Pause()
 	event:Resume()
+	event:Wait()
+	event:Enabled()
 	event:Disconnect()
 --]]
 
@@ -57,6 +61,21 @@ end})
 --]]
 function Manager.set(properties)
 	Settings.Debug = properties['Debug'] or false
+end
+
+--[[
+	Variations of call:
+	
+	.wait(time)
+--]]
+function Manager.wait(clock)
+	if clock then
+		local current = os.clock()
+		while clock > os.clock() - current do
+			Services['RunService'].Stepped:Wait()
+		end
+	end
+	return Services['RunService'].Stepped:Wait()
 end
 
 --[[
@@ -103,7 +122,7 @@ function Manager.delay(clock,code)
 	Manager.wrap(function()
 		local current = os.clock()
 		while clock < os.clock() - current do
-			Services['RunService'].Stepped:Wait()
+			Manager.wait()
 		end
 		return Manager.wrap(code)
 	end)
@@ -112,16 +131,17 @@ end
 --[[
 	Variations of call:
 	
-	.wait(time)
---]]
-function Manager.wait(clock)
-	if clock then
+	.garbage(time,function)
+]]--
+function Manager.garbage(clock,obj)
+	assert(typeof(clock) == 'number' and typeof(obj) == 'Instance',"[DICE MANAGER]: 'garbage' missing parameters, got '".. typeof(clock) .."' and '".. typeof(Instance) .."'")
+	Manager.wrap(function()
 		local current = os.clock()
-		while clock > os.clock() - current do
-			Services['RunService'].Stepped:Wait()
+		while clock < os.clock() - current do
+			Manager.wait()
 		end
-	end
-	return Services['RunService'].Stepped:Wait()
+		obj:Destroy()
+	end)
 end
 
 --[[
@@ -286,7 +306,7 @@ function Manager:Task(targetFPS)
 	control.UpdateTableEvent = nil
 	
 	local start = os.clock()
-	Services['RunService'].Stepped:Wait()
+	Manager.wait()
 	
 	local function Update()
 		Manager.LastIteration = os.clock()
@@ -326,7 +346,7 @@ function Manager:Task(targetFPS)
 						break
 					end
 				elseif control:Enabled() then
-					Services['RunService'].Stepped:Wait()
+					Manager.wait()
 				end
 			end
 		end
@@ -357,7 +377,7 @@ function Manager:Task(targetFPS)
 	
 	function control:Wait()
 		while not control.Sleeping do
-			Services['RunService'].Stepped:Wait()
+			Manager.wait()
 		end
 		local fps = (((os.clock() - start) >= 1 and #control.UpdateTable) or (#control.UpdateTable / (os.clock() - start)))
 		return fps
