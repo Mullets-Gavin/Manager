@@ -16,8 +16,36 @@ Set the properties of the manager:
 
 ```
 properties = dictionary
-properties['Debug'] = bool -- true (on) or false (off)?
+properties['Debug'] = bool -- true (on) or false (off)
+properties['RunService'] = 'Stepped' or 'Heartbeat'
 ```
+
+### DiceManager.wait
+```lua
+.wait([time])
+```
+An accurate wait function that takes a given time after the time is met more accurately than `wait()`
+
+*Example:*
+```lua
+local function run()
+	print('running!')
+end
+
+Manager.wait(50) -- wait 50 seconds to run
+run()
+```
+
+**Returns**
+```lua
+-- Stepped:
+time -- The duration (in seconds) that RunService has been running for
+step -- The time (in seconds) that has elapsed since the previous frame
+
+-- Heartbeat:
+step -- The time (in seconds) that has elapsed since the previous frame
+```
+The parameters of RunService.Stepped or RunService.Heartbeat are returned.
 
 ### DiceManager.wrap
 ```lua
@@ -67,20 +95,19 @@ end
 Manager.delay(5,run)
 ```
 
-### DiceManager.wait
+### DiceManager.garbage
 ```lua
-.wait(time)
+.garbage(time,instance)
 ```
-An accurate wait function that takes a given time after the time is met more accurately than `wait()`
+An accurate delay function that takes a given time & an instance, and runs after the time is met more accurately than `wait()` & built-in `Debris:AddItem()`
 
 *Example:*
 ```lua
-local function run()
-	print('running after 5 seconds passed')
-end
+local obj = instance.new('Part')
+obj.Parent = workspace
+obj.Anchored = true
 
-Manager.wait(5)
-run()
+Manager.garbage(5,obj)
 ```
 
 ### DiceManager:Connect
@@ -133,6 +160,24 @@ local event = Manager:ConnectKey('Keepsake',run)
 event:Fire('connection linked to a key')
 ```
 
+### DiceManager:FireKey
+```lua
+:FireKey(key[,paramaters])
+```
+Fire all of the connections on a key with the given parameters.
+
+*Example:*
+```lua
+Manager:ConnectKey('Keepsake',function(param)
+	print('1:',param)
+end)
+Manager:ConnectKey('Keepsake',function(param)
+	print('2:',param)
+end)
+
+Manager:FireKey('Keepsake','Running!')
+```
+
 ### DiceManager:DisconnectKey
 ```lua
 :DisconnectKey(key)
@@ -164,6 +209,7 @@ control:Queue(function)
 control:Pause()
 control:Resume()
 control:Wait()
+control:Enabled()
 control:Disconnect()
 ```
 Supply a function to `Queue()` to run a function in the order the function was passed in.
