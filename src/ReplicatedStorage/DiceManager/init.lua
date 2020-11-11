@@ -5,7 +5,7 @@
 
 --[[
 [DOCUMENTATION]:
-	https://github.com/Mullets-Gavin/DiceManager
+	https://github.com/Mullets-Gavin/Manager
 	Listed below is a quick glance on the API, visit the link above for proper documentation.
 	
 	... = parameters
@@ -65,7 +65,7 @@
 local Manager = {}
 Manager.Connections = {}
 Manager.LastIteration = nil
-Manager.Name = 'DiceManager'
+Manager.Name = 'Manager'
 
 local Settings = {}
 Settings.Debug = false
@@ -76,15 +76,6 @@ local Services = setmetatable({}, {__index = function(cache, serviceName)
 	cache[serviceName] = game:GetService(serviceName)
 	return cache[serviceName]
 end})
-
---// variables
-local Bindable = Services['ReplicatedStorage']:FindFirstChild(Manager.Name); do
-	if not Bindable then
-		Bindable = Instance.new('BindableEvent')
-		Bindable.Name = Manager.Name
-		Bindable.Parent = Services['ReplicatedStorage']
-	end
-end
 
 --// functions
 --[[
@@ -98,6 +89,8 @@ end
 	}
 --]]
 function Manager.set(properties)
+	assert(typeof(properties) == 'table',"[MANAGER]: 'set' expected dictionary, got '".. typeof(properties) .."'")
+	
 	Settings.Debug = properties['Debug'] or false
 	Settings.RunService = properties['RunService'] or 'Stepped'
 end
@@ -125,7 +118,7 @@ end
 	.wrap(function)
 ]]--
 function Manager.wrap(code,...)
-	assert(typeof(code) == 'function',"[DICE MANAGER]: 'wrap' only accepts functions, got '".. typeof(code) .."'")
+	assert(typeof(code) == 'function',"[MANAGER]: 'wrap' only accepts functions, got '".. typeof(code) .."'")
 	
 	local thread = coroutine.create(code)
     local ran,response = coroutine.resume(thread, ...)
@@ -142,7 +135,7 @@ end
 	.spawn(function)
 ]]--
 function Manager.spawn(code,...)
-	assert(typeof(code) == 'function',"[DICE MANAGER]: 'spawn' only accepts functions, got '".. typeof(code) .."'")
+	assert(typeof(code) == 'function',"[MANAGER]: 'spawn' only accepts functions, got '".. typeof(code) .."'")
 	
 	local data = {...}
 	local event; event = Services['RunService'][Settings.RunService]:Connect(function()
@@ -202,7 +195,7 @@ end
 	.delay(time,function)
 ]]--
 function Manager.delay(clock,code,...)
-	assert(typeof(clock) == 'number' and typeof(code) == 'function',"[DICE MANAGER]: 'delay' missing parameters, got '".. typeof(clock) .."' and '".. typeof(code) .."'")
+	assert(typeof(clock) == 'number' and typeof(code) == 'function',"[MANAGER]: 'delay' missing parameters, got '".. typeof(clock) .."' and '".. typeof(code) .."'")
 	
 	local data = {...}
 	Manager.wrap(function()
@@ -222,7 +215,7 @@ end
 	.garbage(time,function)
 ]]--
 function Manager.garbage(clock,obj)
-	assert(typeof(clock) == 'number' and typeof(obj) == 'Instance',"[DICE MANAGER]: 'garbage' missing parameters, got '".. typeof(clock) .."' and '".. typeof(Instance) .."'")
+	assert(typeof(clock) == 'number' and typeof(obj) == 'Instance',"[MANAGER]: 'garbage' missing parameters, got '".. typeof(clock) .."' and '".. typeof(Instance) .."'")
 	
 	Manager.wrap(function()
 		local current = os.clock()
@@ -241,7 +234,7 @@ end
 	.retry(timeout,function)
 --]]
 function Manager.retry(clock,code,...)
-	assert(typeof(clock) == 'number' and typeof(code) == 'function',"[DICE MANAGER]: 'retry' missing parameters, got '".. typeof(clock) .."' and '".. typeof(code) .."'")
+	assert(typeof(clock) == 'number' and typeof(code) == 'function',"[MANAGER]: 'retry' missing parameters, got '".. typeof(clock) .."' and '".. typeof(code) .."'")
 	
 	local current = os.clock()
 	local success,response
@@ -271,7 +264,7 @@ end
 	control:Disconnect()
 ]]--
 function Manager:Connect(code)
-	assert(code ~= nil,"[DICE MANAGER]: 'Connect' missing parameters, got function '".. typeof(code) .."'")
+	assert(code ~= nil,"[MANAGER]: 'Connect' missing parameters, got function '".. typeof(code) .."'")
 	local control = {}
 	
 	function control:Disconnect()
@@ -284,17 +277,17 @@ function Manager:Connect(code)
 				code:Disconnect()
 			end)
 			if not success and Settings.Debug then
-				warn('[DICE MANAGER]:',err)
+				warn('[MANAGER]:',err)
 			end
 		end
 		
 		code = nil
 		setmetatable(control, {
 			__index = function()
-				error('[DICE MANAGER]: Attempt to use destroyed connection')
+				error('[MANAGER]: Attempt to use destroyed connection')
 			end;
 			__newindex = function()
-				error('[DICE MANAGER]: Attempt to use destroyed connection')
+				error('[MANAGER]: Attempt to use destroyed connection')
 			end;
 		})
 	end
@@ -303,7 +296,7 @@ function Manager:Connect(code)
 		if typeof(code) == 'function' then
 			return Manager.wrap(code,...)
 		else
-			warn("[DICE MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
+			warn("[MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
 		end
 	end
 	
@@ -324,7 +317,7 @@ end
 	control:Disconnect()
 ]]--
 function Manager:ConnectKey(key,code)
-	assert(key ~= nil and code ~= nil,"[DICE MANAGER]: 'ConnectKey' missing parameters, got key '".. typeof(key) .."' and got function '".. typeof(code) .."'")
+	assert(key ~= nil and code ~= nil,"[ MANAGER]: 'ConnectKey' missing parameters, got key '".. typeof(key) .."' and got function '".. typeof(code) .."'")
 	if not Manager.Connections[key] then
 		Manager.Connections[key] = {}
 	end
@@ -341,17 +334,17 @@ function Manager:ConnectKey(key,code)
 				code:Disconnect()
 			end)
 			if not success and Settings.Debug then
-				warn('[DICE MANAGER]:',err)
+				warn('[MANAGER]:',err)
 			end
 		end
 		
 		code = nil
 		setmetatable(control, {
 			__index = function()
-				error('[DICE MANAGER]: Attempt to use destroyed connection')
+				error('[MANAGER]: Attempt to use destroyed connection')
 			end;
 			__newindex = function()
-				error('[DICE MANAGER]: Attempt to use destroyed connection')
+				error('[MANAGER]: Attempt to use destroyed connection')
 			end;
 		})
 	end
@@ -360,7 +353,7 @@ function Manager:ConnectKey(key,code)
 		if typeof(code) == 'function' then
 			return Manager.wrap(code,...)
 		else
-			warn("[DICE MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
+			warn("[MANAGER]: Attempted to call :Fire on '".. typeof(code) .."'")
 		end
 	end
 	
@@ -375,7 +368,7 @@ end
 	:FireKey(key,parameters)
 --]]
 function Manager:FireKey(key,...)
-	assert(key ~= nil,"[DICE MANAGER]: 'FireKey' missing parameters, got key '".. typeof(key) .."'")
+	assert(key ~= nil,"[MANAGER]: 'FireKey' missing parameters, got key '".. typeof(key) .."'")
 	
 	if Manager.Connections[key] then
 		for code,control in pairs(Manager.Connections[key]) do
@@ -390,7 +383,7 @@ end
 	:DisconnectKey(key)
 --]]
 function Manager:DisconnectKey(key)
-	assert(key ~= nil,"[DICE MANAGER]: 'DisconnectKey' missing parameters, got key '".. typeof(key) .."'")
+	assert(key ~= nil,"[MANAGER]: 'DisconnectKey' missing parameters, got key '".. typeof(key) .."'")
 	
 	if Manager.Connections[key] then
 		for code,control in pairs(Manager.Connections[key]) do
@@ -416,7 +409,7 @@ end
 --]]
 function Manager:Task(targetFPS)
 	targetFPS = targetFPS or 60
-	assert(typeof(targetFPS) == 'number',"[DICE MANAGER]: Task scheduler only accepts numbers for frames per second, got '".. typeof(targetFPS) .."'")
+	assert(typeof(targetFPS) == 'number',"[MANAGER]: Task scheduler only accepts numbers for frames per second, got '".. typeof(targetFPS) .."'")
 	
 	local control = {}
 	control.CodeQueue = {}
@@ -524,10 +517,10 @@ function Manager:Task(targetFPS)
 		
 		setmetatable(control, {
 			__index = function()
-				error('[DICE MANAGER]: Attempt to use destroyed task scheduler')
+				error('[MANAGER]: Attempt to use destroyed task scheduler')
 			end;
 			__newindex = function()
-				error('[DICE MANAGER]: Attempt to use destroyed task scheduler')
+				error('[MANAGER]: Attempt to use destroyed task scheduler')
 			end;
 		})
 	end
